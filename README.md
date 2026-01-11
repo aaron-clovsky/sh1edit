@@ -24,7 +24,7 @@ If ```sh1.cue``` and ```sh1.bin``` are the Silent Hill image files.
 
 Extract and decrypt '1ST/BODYPROG.BIN'
 
-``` ./bin/sh1edit ext ./sh1.bin 207 674560 ./BODYPROG.BIN ```
+``` ./bin/sh1edit extd ./sh1.bin 207 674560 ./BODYPROG.BIN ```
 
 Patch '1ST/BODYPROG.BIN' for 60fps:
 ```
@@ -32,9 +32,9 @@ xxd -p ./BODYPROG.BIN | tr -d '\n' | sed 's/345c438ef08fa48c/345c438e01000424/' 
 xxd -p ./BODYPROG.TMP | tr -d '\n' | sed 's/7097638ef08f048e/7097638e01000424/' | xxd -p -r > ./BODYPROG.MOD
 ```
 
-Insert modified '1ST/BODYPROG.BIN'
+Insert and encrypt modified '1ST/BODYPROG.BIN'
 
-``` ./bin/sh1edit ins ./sh1.bin 207 ./BODYPROG.MOD ./sh1_mod.bin ```
+``` ./bin/sh1edit inse ./sh1.bin 207 ./BODYPROG.MOD ./sh1_mod.bin ```
 
 Create matching .cue
 

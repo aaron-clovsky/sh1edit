@@ -29,8 +29,10 @@ Types
 *******************************************************************************/
 typedef enum
 {
-    ARG_MODE_EXT = 0,
-    ARG_MODE_INS = 1
+    ARG_MODE_EXT  = 0,
+    ARG_MODE_INS  = 1,
+    ARG_MODE_EXTD = 2,
+    ARG_MODE_INSE = 3
 } arg_mode;
 
 struct
@@ -89,8 +91,10 @@ void help_exit(const char * arg)
     name = name ? &name[1] : arg;
 
     printf("Usage: %s <mode> ...\n", name);
-    printf("  %s ext <input .bin> <sector> <size> <output file>\n", name);
-    printf("  %s ins <input .bin> <sector> <input file> <output .bin>\n", name);
+    printf(" %s ext <input .bin> <sector> <size> <output file>\n", name);
+    printf(" %s extd <input .bin> <sector> <size> <output file>\n", name);
+    printf(" %s ins <input .bin> <sector> <input file> <output .bin>\n", name);
+    printf(" %s inse <input .bin> <sector> <input file> <output .bin>\n", name);
 
     exit(2);
 }
@@ -109,9 +113,17 @@ void init(int argc, const char ** argv)
     {
         args.mode = ARG_MODE_EXT;
     }
+    else if (strcmp(argv[1], "extd") == 0)
+    {
+        args.mode = ARG_MODE_EXTD;
+    }
     else if (strcmp(argv[1], "ins") == 0)
     {
         args.mode = ARG_MODE_INS;
+    }
+    else if (strcmp(argv[1], "inse") == 0)
+    {
+        args.mode = ARG_MODE_INSE;
     }
     else
     {
@@ -172,7 +184,7 @@ void init(int argc, const char ** argv)
         perror_exit("Error opening output file");
     }
 
-    if (args.mode == ARG_MODE_EXT)
+    if (args.mode == ARG_MODE_EXT || args.mode == ARG_MODE_EXTD)
     {
         /* Parse size */
         if (!parse_long(argv[4], &value, NULL))
@@ -189,7 +201,7 @@ void init(int argc, const char ** argv)
 
         args.size = (uint32_t)value;
     }
-    else /* args.mode == ARG_MODE_INS */
+    else /* args.mode == ARG_MODE_INS || args.mode == ARG_MODE_INSE */
     {
         /* Open input file */
         if ((!(args.in_file = fopen(argv[4], "rb"))))
@@ -257,7 +269,7 @@ int main(int argc, const char ** argv)
     /* Process args */
     init(argc, argv);
 
-    if (args.mode == ARG_MODE_EXT)
+    if (args.mode == ARG_MODE_EXT || args.mode == ARG_MODE_EXTD)
     {
         if (fseek(args.in_cd, 2352 * args.start_sector, SEEK_SET) == -1)
         {
@@ -306,22 +318,35 @@ int main(int argc, const char ** argv)
                 }
             }
 
-            for (i = 0; i < size >> 2; i++)
+            if (args.mode == ARG_MODE_EXTD)
             {
-                /* From Fs_DecryptOverlay() in /src/main/fileinfo.c
-                   https://github.com/Vatuu/silent-hill-decomp */
-                seed = (seed + 0x01309125) * 0x03A452F7;
-
-                data[i] ^= seed;
-
-                total += 4;
-
-                if (total == args.size)
+                for (i = 0; i < size >> 2; i++)
                 {
-                    size     = (i + 1) << 2;
-                    finished = 1;
-                    break;
+                    /* From Fs_DecryptOverlay() in /src/main/fileinfo.c
+                       https://github.com/Vatuu/silent-hill-decomp */
+                    seed = (seed + 0x01309125) * 0x03A452F7;
+
+                    data[i] ^= seed;
+
+                    total += 4;
+
+                    if (total == args.size)
+                    {
+                        size     = (i + 1) << 2;
+                        finished = 1;
+                        break;
+                    }
                 }
+            }
+            else
+            {
+                if (total + size > args.size)
+                {
+                    size     = args.size - total;
+                    finished = 1;
+                }
+
+                total += size;
             }
 
             if (fwrite(data, size, 1, args.out) != 1)
@@ -337,7 +362,7 @@ int main(int argc, const char ** argv)
             sector_num++;
         }
     }
-    else /* args.mode == ARG_MODE_INS */
+    else /* args.mode == ARG_MODE_INS || args.mode == ARG_MODE_INSE */
     {
         char backup[2352];
 
@@ -422,21 +447,24 @@ int main(int argc, const char ** argv)
                 }
             }
 
-            for (i = 0; i < size >> 2; i++)
+            if (args.mode == ARG_MODE_INSE)
             {
-                /* From Fs_DecryptOverlay() in /src/main/fileinfo.c
-                   https://github.com/Vatuu/silent-hill-decomp */
-                seed = (seed + 0x01309125) * 0x03A452F7;
-
-                data[i] ^= seed;
-
-                total += 4;
-
-                if (total == args.size)
+                for (i = 0; i < size >> 2; i++)
                 {
-                    size     = (i + 1) << 2;
-                    finished = 1;
-                    break;
+                    /* From Fs_DecryptOverlay() in /src/main/fileinfo.c
+                       https://github.com/Vatuu/silent-hill-decomp */
+                    seed = (seed + 0x01309125) * 0x03A452F7;
+
+                    data[i] ^= seed;
+
+                    total += 4;
+
+                    if (total == args.size)
+                    {
+                        size     = (i + 1) << 2;
+                        finished = 1;
+                        break;
+                    }
                 }
             }
 

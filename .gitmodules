@@ -1,0 +1,3 @@
+[submodule "sector"]
+	path = sector
+	url = https://github.com/aaron-clovsky/sector

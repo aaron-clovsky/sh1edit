@@ -340,7 +340,7 @@ int main(int argc, const char ** argv)
             }
             else
             {
-                if (total + size > args.size)
+                if (total + size >= args.size)
                 {
                     size     = args.size - total;
                     finished = 1;
@@ -466,6 +466,16 @@ int main(int argc, const char ** argv)
                         break;
                     }
                 }
+            }
+            else
+            {
+                if (total + size >= args.size)
+                {
+                    size     = args.size - total;
+                    finished = 1;
+                }
+
+                total += size;
             }
 
             if (mode == SECTOR_MODE_1)
